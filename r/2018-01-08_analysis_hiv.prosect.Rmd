@@ -1,0 +1,924 @@
+---
+title: "HIV Testing Analysis in PROSPECT Study"
+
+subtitle: "Analysis of HIV testing outcomes in PROSPECT Study"
+
+author: |
+  | Peter MacPherson
+  |
+  | Liverpool School of Tropical Medicine, Liverpool, UK
+  | Malawi-Liverpool-Wellcome Clinical Research Programme, Blantyre, Malawi
+  |
+
+date: | 
+  | `r format(Sys.time(), "%B %d, %Y")`
+  |
+  | Table of Contents:
+output: 
+  html_document:
+    theme: cosmo
+    toc: true
+---
+
+<br>
+
+## 1. Backgound
+
+BACKGROUND TEXT HERE
+
+<br>
+
+## 2. Set-up
+
+Load all required packages for analysis.
+
+```{r setup, include=FALSE, message=FALSE, warning=FALSE}
+library(tidyverse)    #for data manipulation
+library(janitor)      #for tables
+library(pmthemes)     #for ggplot themes
+library(knitr)        #for tables
+library(rethinking)   #for statistical modelling
+library(hiv.prospect) #for study data
+library(arsenal)      #for table 1
+library(brms)
+library(sjPlot)
+
+```
+
+<br>
+
+## 3. Import datasets
+
+Import data required for the analysis.
+
+```{r import}
+data("entry", package = "hiv.prospect")
+data("exit", package = "hiv.prospect")
+
+```
+
+<br>
+
+## 4. Characteristics of attenders
+
+In total, between 15th May 2018 and 7th September 2018 inclusive, there were a total of `r nrow(entry)` adult acute attendances at the study clinic (Bangwe Health Centre, Blantyre, Malawi).
+
+What proportion of attendances were repeat attendances during the study period?
+
+```{r}
+entry %>%
+  tabyl(reattendance) %>%
+  kable(digits = 3, caption = "Proportion of attendances that were repeat")
+```
+
+What was the distribution of multiple visits by participants?
+
+```{r}
+entry %>%
+  group_by(case_id) %>%
+  mutate(sum_visits = sum(reattendance)+1) %>%
+  tabyl(sum_visits) %>%
+  kable(digits = 3, caption = "Distribution of visits")
+
+```
+
+What was the distribution of clinic visits by day?
+
+```{r}
+
+entry %>%
+  group_by(received_on) %>%
+  mutate(dailycount = n()) %>%
+  summarise(dailymean = mean(dailycount)) %>%
+  summarise(mean = mean(dailymean),
+            min = min(dailymean),
+            max = max(dailymean),
+            median = median(dailymean))
+
+```
+
+
+
+Does the distribution of visits vary by characteristics (sex, cough, any TB symptoms?)
+
+```{r}
+entry %>%
+  group_by(case_id) %>%
+  mutate(sum_visits = sum(reattendance)+1) %>%
+  tabyl(sum_visits, sex) %>%
+  adorn_totals("col") %>%
+  adorn_totals("row") %>%
+  adorn_percentages("col") %>%
+  adorn_pct_formatting() %>%
+  adorn_ns() %>%
+  kable(digits = 3, caption = "Distribution of visits by sex")
+
+```
+
+```{r}
+entry %>%
+  group_by(case_id) %>%
+  mutate(sum_visits = sum(reattendance)+1) %>%
+  tabyl(sum_visits, cough) %>%
+  adorn_totals("col") %>%
+  adorn_totals("row") %>%
+  adorn_percentages("col") %>%
+  adorn_pct_formatting() %>%
+  adorn_ns() %>%
+  kable(digits = 3, caption = "Distribution of visits by cough status")
+
+```
+
+```{r}
+entry %>%
+  group_by(case_id) %>%
+  mutate(sum_visits = sum(reattendance)+1) %>%
+  tabyl(sum_visits, any_symptoms) %>%
+  adorn_totals("col") %>%
+  adorn_totals("row") %>%
+  adorn_percentages("col") %>%
+  adorn_pct_formatting() %>%
+  adorn_ns() %>%
+  kable(digits = 3, caption = "Distribution of visits by presence of any TB symptoms")
+
+```
+
+
+Now make a table of characteristics of attendance episodes
+
+```{r}
+
+table1 <- tableby(sex ~ 
+                  age +
+                  cough + 
+                  weight_loss + 
+                  fever +
+                  night_sweats +
+                  any_symptoms +
+                  chronic_cough +
+                  blantyre_res +
+                  tb_rx +
+                  tb_rx_6m,
+                  data = entry,
+                test = FALSE,
+                numeric.stats = c("medianrange"))
+
+kable(summary(table1), caption = "Table 1: Characteristics of attendance episodes by sex")
+
+
+
+```
+
+##5. Comparison of characteristics of those who did and did not undergo exit interview
+
+First merge the datasets together - need to be careful to merge on participant id as well as date of attendance so as to match unique attendences among people who reattended.
+
+```{r}
+
+exit <- exit %>% mutate(interviewed = "Interviewed")
+
+merged <- left_join(entry, exit, by = c("case_id", "received_on"))
+
+merged <- merged %>%
+  mutate(interviewed = case_when(is.na(interviewed) ~ "Not interviewed",
+                                 TRUE ~ interviewed))
+
+table2 <- tableby(interviewed ~ 
+                  sex + 
+                  age +
+                  cough + 
+                  weight_loss + 
+                  fever +
+                  night_sweats +
+                  any_symptoms +
+                  chronic_cough +
+                  blantyre_res +
+                  tb_rx +
+                  tb_rx_6m,
+                  data = merged,
+                test = FALSE,
+                numeric.stats = c("medianrange"),
+                cat.stats = "countrowpct")
+
+kable(summary(table2), caption = "Table 2: Comparison between participants who were and were not exit interviewed")
+
+```
+
+
+
+##6. Analysis of outcome
+
+
+First how many were on ART? These will need to be filtered out as they are not eligibile for offer of HIV test
+
+```{r}
+
+merged %>% tabyl(art) %>% kable()
+
+```
+
+
+```{r}
+
+outdata <- merged %>%
+  filter(interviewed =="Interviewed") %>%
+  filter(art == "No")
+
+```
+
+Now, of those remaining, how many are HIV-positive, but not on ART (these should be eligible for HIV testing)
+
+```{r}
+
+outdata %>% tabyl(hivstatus) %>% kable()
+
+```
+
+Now look at what proportion was offered HIV testing
+
+```{r}
+
+outdata %>% tabyl(askhivtest) %>% kable()
+
+```
+
+And what proportion actually did report HIV testing on same day?
+
+```{r}
+
+outdata %>% tabyl(testedhiv) %>% kable()
+
+```
+
+Compare characteristics between those offered and not offered HIV testing.
+
+```{r}
+
+table3 <- tableby(askhivtest ~ 
+                  sex + 
+                  age +
+                  cough + 
+                  weight_loss + 
+                  fever +
+                  night_sweats +
+                  any_symptoms +
+                  chronic_cough +
+                  srh +
+                  blantyre_res +
+                  tb_rx +
+                  tb_rx_6m +
+                  prevtb +
+                  everhivtest +
+                  lasthivresult +
+                  hivstatus,
+                  data = merged,
+                test = FALSE,
+                numeric.stats = c("medianrange"),
+                cat.stats = "countrowpct")
+
+kable(summary(table3), caption = "Table 3: Comparison between participants who were and were not offered HIV testing during clinic attendance")
+
+
+```
+
+Compare characteristics between those reporting completing and not completing HIV testing.
+
+```{r}
+
+table4 <- tableby(testedhiv ~ 
+                  sex + 
+                  age +
+                  cough + 
+                  weight_loss + 
+                  fever +
+                  night_sweats +
+                  any_symptoms +
+                  chronic_cough +
+                  srh +
+                  blantyre_res +
+                  tb_rx +
+                  tb_rx_6m +
+                  prevtb +
+                  everhivtest +
+                  lasthivresult +
+                  hivstatus,
+                  data = merged,
+                test = FALSE,
+                numeric.stats = c("medianrange"),
+                cat.stats = "countrowpct")
+
+kable(summary(table4), caption = "Table 4: Comparison between participants who reported completing and not completing HIV testing")
+
+
+```
+
+
+<br>
+
+##7. Statistical modelling
+
+Bayesian regression models
+ 
+```{r}
+
+outdata <- as.data.frame(outdata)
+
+outdata <- outdata %>%
+  mutate(sex2 = case_when(sex=="Male" ~ 1,
+                          sex=="Female" ~ 2)) %>%
+  mutate(prevtb2 = case_when(prevtb=="Yes" ~2,
+                             prevtb=="No" ~ 1)) %>%
+  mutate(everhivtest2 = case_when(everhivtest=="Yes" ~ 2,
+                                  everhivtest=="No" ~ 1)) %>%
+  mutate(any_symptoms2 = case_when(any_symptoms==TRUE ~ 1,
+                                   any_symptoms==FALSE ~ 2)) %>%
+  mutate(testedhiv2 = case_when(testedhiv=="Yes" ~1,
+                                testedhiv=="No" ~ 0)) %>%
+  mutate(cough2 = case_when(cough=="Yes" ~ 2,
+                            cough=="No" ~ 1)) %>%
+  mutate(chronic_cough2 = case_when(chronic_cough==TRUE ~ 1,
+                                    chronic_cough==FALSE ~ 0))
+
+outdata <- as.data.frame(outdata)
+
+```
+
+
+Model 1 - age and sex alone.
+
+```{r}
+mr1 <- map2stan(
+  alist(
+    testedhiv2 ~ dbinom(1, p),
+    logit(p) <- a + b_sex*sex2 + b_age*age,
+    a ~dnorm(0,100),
+    b_sex ~ dnorm(0,2.5),
+    b_age ~ dnorm(0,2.5)),
+  data=outdata, chains = 3)
+
+precis(mr1)
+plot(mr1)
+plot(precis(mr1))
+
+post_mr1_means <- as_tibble(as.list(coef(mr1))) %>% mutate_all(exp)
+post_mr1_means <- post_mr1_means %>%
+  mutate(rowname = "mean")
+
+post_mr1 <- extract.samples(mr1, pars = c("a", "b_sex", "b_age"))
+
+post_mr1_sum <- purrr::map(post_mr1, ~ PI(.x, prob = 0.89))
+post_mr1_sum <- purrr::map(post_mr1_sum, ~ exp(.x))
+post_mr1_sum <- data.frame(post_mr1_sum) %>% rownames_to_column()
+
+post_mr1_sum <- bind_rows(post_mr1_sum, post_mr1_means) %>%
+  mutate(model="mr1")
+
+
+```
+
+Men appear more likely to complete testing that women. And decrease in the probability of testing by age.
+
+Model 2a - now add in cough of any duration.
+
+```{r}
+
+mr2a <- map2stan(
+  alist(
+    testedhiv2 ~ dbinom(1, p),
+    logit(p) <- a + b_sex*sex2 + b_age*age + b_cough*cough2,
+    a ~dnorm(0,100),
+    b_sex ~ dnorm(0,2.5),
+    b_age ~ dnorm(0,2.5),
+    b_cough ~ dnorm(0,2.5)
+    ),
+  data=outdata, chains = 3)
+
+precis(mr2a)
+plot(mr2a)
+plot(precis(mr2a))
+
+post_mr2a_means <- as_tibble(as.list(coef(mr2a))) %>% mutate_all(exp)
+post_mr2a_means <- post_mr2a_means %>%
+  mutate(rowname = "mean")
+
+post_mr2a <- extract.samples(mr2a, pars = c("a", "b_sex", "b_age", "b_cough"))
+
+post_mr2a_sum <- purrr::map(post_mr2a, ~ PI(.x, prob = 0.89))
+post_mr2a_sum <- purrr::map(post_mr2a_sum, ~ exp(.x))
+post_mr2a_sum <- data.frame(post_mr2a_sum) %>% rownames_to_column()
+
+post_mr2a_sum <- bind_rows(post_mr2a_sum, post_mr2a_means) %>%
+  mutate(model="mr2a")
+
+```
+
+As we would expect, individuals reporting cough of any duration had a greater posterior probability of completing HIV testing.
+
+Model 2b - try adjusting for the effect of previous TB treatment
+
+```{r}
+
+mr2b <- map2stan(
+  alist(
+    testedhiv2 ~ dbinom(1, p),
+    logit(p) <- a + b_sex*sex2 + b_age*age + b_cough*cough2 +
+      b_prevtb*prevtb2,
+    a ~dnorm(0,100),
+    b_sex ~ dnorm(0,2.5),
+    b_age ~ dnorm(0,2.5),
+    b_cough ~ dnorm(0,2.5),
+    b_prevtb ~ dnorm(0,2.5)),
+  data=outdata, chains = 3)
+
+precis(mr2b)
+plot(mr2b)
+plot(precis(mr2b))
+
+post_mr2b_means <- as_tibble(as.list(coef(mr2b))) %>% mutate_all(exp)
+post_mr2b_means <- post_mr2b_means %>%
+  mutate(rowname = "mean")
+
+post_mr2b <- extract.samples(mr2b, pars = c("a", "b_sex", "b_age", "b_cough",
+                                            "b_prevtb"))
+
+post_mr2b_sum <- purrr::map(post_mr2b, ~ PI(.x, prob = 0.89))
+post_mr2b_sum <- purrr::map(post_mr2b_sum, ~ exp(.x))
+post_mr2b_sum <- data.frame(post_mr2b_sum) %>% rownames_to_column()
+
+post_mr2b_sum <- bind_rows(post_mr2b_sum, post_mr2b_means) %>%
+  mutate(model="mr2b")
+```
+
+Model 2c - try adjusting for the effect of ever having previously tested for HIV
+
+```{r}
+
+mr2c <- map2stan(
+  alist(
+    testedhiv2 ~ dbinom(1, p),
+    logit(p) <- a + b_sex*sex2 + b_age*age + b_cough*cough2 +
+      b_prevtb*prevtb2 + b_everhivtest*everhivtest2,
+    a ~dnorm(0,100),
+    b_sex ~ dnorm(0,2.5),
+    b_age ~ dnorm(0,2.5),
+    b_cough ~ dnorm(0,2.5),
+    b_prevtb ~ dnorm(0,2.5),
+    b_everhivtest ~ dnorm(0,2.5)
+    ),
+  data=outdata, chains = 3)
+
+precis(mr2c)
+plot(mr2c)
+plot(precis(mr2c))
+
+post_mr2c_means <- as_tibble(as.list(coef(mr2c))) %>% mutate_all(exp)
+post_mr2c_means <- post_mr2c_means %>%
+  mutate(rowname = "mean")
+
+post_mr2c <- extract.samples(mr2c, pars = c("a", "b_sex", "b_age", "b_cough",
+                                            "b_prevtb", "b_everhivtest"))
+
+post_mr2c_sum <- purrr::map(post_mr2c, ~ PI(.x, prob = 0.89))
+post_mr2c_sum <- purrr::map(post_mr2c_sum, ~ exp(.x))
+post_mr2c_sum <- data.frame(post_mr2c_sum) %>% rownames_to_column()
+
+post_mr2c_sum <- bind_rows(post_mr2c_sum, post_mr2c_means) %>%
+  mutate(model="mr2c")
+
+
+```
+
+
+
+Model 3 - what about chronic cough (>2 weeks - "classic" TB passive case finding symptom)
+
+```{r}
+
+mr3a <- map2stan(
+  alist(
+    testedhiv2 ~ dbinom(1, p),
+    logit(p) <- a + b_sex*sex2 + b_age*age + b_chronic_cough*chronic_cough2,
+    a ~dnorm(0,100),
+    b_sex ~ dnorm(0,2.5),
+    b_age ~ dnorm(0,2.5),
+    b_chronic_cough ~ dnorm(0,2.5)),
+  data=outdata, chains = 3)
+
+precis(mr3a)
+plot(mr3a)
+plot(precis(mr3a))
+
+post_mr3a_means <- as_tibble(as.list(coef(mr3a))) %>% mutate_all(exp)
+post_mr3a_means <- post_mr3a_means %>%
+  mutate(rowname = "mean")
+
+post_mr3a <- extract.samples(mr3a, pars = c("a", "b_sex", "b_age", "b_chronic_cough"))
+
+post_mr3a_sum <- purrr::map(post_mr3a, ~ PI(.x, prob = 0.89))
+post_mr3a_sum <- purrr::map(post_mr3a_sum, ~ exp(.x))
+post_mr3a_sum <- data.frame(post_mr3a_sum) %>% rownames_to_column()
+
+post_mr3a_sum <- bind_rows(post_mr3a_sum, post_mr3a_means) %>%
+  mutate(model="mr3a")
+
+
+```
+
+Opposite pattern - individuals with chronic cough less likely to complete HIV testing. Might this be because they are taking TB treatment already (and so might have already been recently tested for HIV?)
+
+```{r}
+
+outdata %>%
+  tabyl(chronic_cough2, prevtb) %>%
+  adorn_totals("col") %>%
+  adorn_totals("row") %>%
+  adorn_percentages("col") %>%
+  adorn_pct_formatting() %>%
+  adorn_ns() %>%
+  kable(digits = 3)
+
+```
+
+So looks like a strong relationship between previous tb and chronic cough. 
+
+Model 3b - Try adding in previous TB as a term.
+
+```{r}
+
+mr3b <- map2stan(
+  alist(
+    testedhiv2 ~ dbinom(1, p),
+    logit(p) <- a + b_sex*sex2 + b_age*age + b_chronic_cough*chronic_cough2 +
+      b_prevtb*prevtb2,
+    a ~dnorm(0,100),
+    b_sex ~ dnorm(0,2.5),
+    b_age ~ dnorm(0,2.5),
+    b_chronic_cough ~ dnorm(0,2.5),
+    b_prevtb ~ dnorm(0,2.5)),
+  data=outdata, chains = 3)
+
+precis(mr3b)
+plot(mr3b)
+plot(precis(mr3b))
+
+post_mr3b_means <- as_tibble(as.list(coef(mr3b))) %>% mutate_all(exp)
+post_mr3b_means <- post_mr3b_means %>%
+  mutate(rowname = "mean")
+
+post_mr3b <- extract.samples(mr3b, pars = c("a", "b_sex", "b_age", "b_chronic_cough",
+                                            "b_prevtb"))
+
+post_mr3b_sum <- purrr::map(post_mr3b, ~ PI(.x, prob = 0.89))
+post_mr3b_sum <- purrr::map(post_mr3b_sum, ~ exp(.x))
+post_mr3b_sum <- data.frame(post_mr3b_sum) %>% rownames_to_column()
+
+post_mr3b_sum <- bind_rows(post_mr3b_sum, post_mr3b_means) %>%
+  mutate(model="mr3b")
+
+```
+
+Model 3c - add in ever previously tested for HIV
+
+```{r}
+
+
+mr3c <- map2stan(
+  alist(
+    testedhiv2 ~ dbinom(1, p),
+    logit(p) <- a + b_sex*sex2 + b_age*age + b_chronic_cough*chronic_cough2 +
+      b_prevtb*prevtb2 + b_everhivtest*everhivtest2,
+    a ~dnorm(0,100),
+    b_sex ~ dnorm(0,2.5),
+    b_age ~ dnorm(0,2.5),
+    b_chronic_cough ~ dnorm(0,2.5),
+    b_prevtb ~ dnorm(0,2.5),
+    b_everhivtest ~ dnorm(0,2.5)
+    ),
+  data=outdata, chains = 3)
+
+precis(mr3c)
+plot(mr3c)
+plot(precis(mr3c))
+
+post_mr3c_means <- as_tibble(as.list(coef(mr3c))) %>% mutate_all(exp)
+post_mr3c_means <- post_mr3c_means %>%
+  mutate(rowname = "mean")
+
+post_mr3c <- extract.samples(mr3c, pars = c("a", "b_sex", "b_age", "b_chronic_cough",
+                                            "b_prevtb", "b_everhivtest"))
+
+post_mr3c_sum <- purrr::map(post_mr3c, ~ PI(.x, prob = 0.89))
+post_mr3c_sum <- purrr::map(post_mr3c_sum, ~ exp(.x))
+post_mr3c_sum <- data.frame(post_mr3c_sum) %>% rownames_to_column()
+
+post_mr3c_sum <- bind_rows(post_mr3c_sum, post_mr3c_means) %>%
+  mutate(model="mr3c")
+
+
+```
+
+
+
+Model 4a - what about individuals with any symptoms of TB (cough, fever, weight loss, or night sweats)
+
+```{r}
+
+mr4a <- map2stan(
+  alist(
+    testedhiv2 ~ dbinom(1, p),
+    logit(p) <- a + b_sex*sex2 + b_age*age + b_anysymptoms*any_symptoms2,
+    a ~dnorm(0,100),
+    b_sex ~ dnorm(0,2.5),
+    b_age ~ dnorm(0,2.5),
+    b_anysymptoms ~ dnorm(0,2.5)),
+  data=outdata, chains = 3)
+
+precis(mr4a)
+plot(mr4a)
+plot(precis(mr4a))
+
+post_mr4a_means <- as_tibble(as.list(coef(mr4a))) %>% mutate_all(exp)
+post_mr4a_means <- post_mr4a_means %>%
+  mutate(rowname = "mean")
+
+post_mr4a <- extract.samples(mr4a, pars = c("a", "b_sex", "b_age", "b_anysymptoms"))
+
+post_mr4a_sum <- purrr::map(post_mr4a, ~ PI(.x, prob = 0.89))
+post_mr4a_sum <- purrr::map(post_mr4a_sum, ~ exp(.x))
+post_mr4a_sum <- data.frame(post_mr4a_sum) %>% rownames_to_column()
+
+post_mr4a_sum <- bind_rows(post_mr4a_sum, post_mr4a_means) %>%
+  mutate(model="mr4a")
+
+```
+
+Model 4b - add in previous TB
+
+```{r}
+
+mr4b <- map2stan(
+  alist(
+    testedhiv2 ~ dbinom(1, p),
+    logit(p) <- a + b_sex*sex2 + b_age*age + b_anysymptoms*any_symptoms2 +
+      b_prevtb*prevtb2,
+    a ~dnorm(0,100),
+    b_sex ~ dnorm(0,2.5),
+    b_age ~ dnorm(0,2.5),
+    b_anysymptoms ~ dnorm(0,2.5),
+    b_prevtb ~ dnorm(0,2.5)
+    ),
+  data=outdata, chains = 3)
+
+precis(mr4b)
+plot(mr4b)
+plot(precis(mr4b))
+
+post_mr4b_means <- as_tibble(as.list(coef(mr4b))) %>% mutate_all(exp)
+post_mr4b_means <- post_mr4b_means %>%
+  mutate(rowname = "mean")
+
+post_mr4b <- extract.samples(mr4b, pars = c("a", "b_sex", "b_age", "b_anysymptoms",
+                                            "b_prevtb"))
+
+post_mr4b_sum <- purrr::map(post_mr4b, ~ PI(.x, prob = 0.89))
+post_mr4b_sum <- purrr::map(post_mr4b_sum, ~ exp(.x))
+post_mr4b_sum <- data.frame(post_mr4b_sum) %>% rownames_to_column()
+
+post_mr4b_sum <- bind_rows(post_mr4b_sum, post_mr4b_means) %>%
+  mutate(model="mr4b")
+
+```
+
+
+Model 4c - add in ever previously HIV tested
+
+```{r}
+
+mr4c <- map2stan(
+  alist(
+    testedhiv2 ~ dbinom(1, p),
+    logit(p) <- a + b_sex*sex2 + b_age*age + b_anysymptoms*any_symptoms2 +
+      b_prevtb*prevtb2 + b_everhivtest*everhivtest2,
+    a ~dnorm(0,100),
+    b_sex ~ dnorm(0,2.5),
+    b_age ~ dnorm(0,2.5),
+    b_anysymptoms ~ dnorm(0,2.5),
+    b_prevtb ~ dnorm(0,2.5),
+    b_everhivtest ~ dnorm(0,2.5)
+    ),
+  data=outdata, chains = 3)
+
+precis(mr4c)
+plot(mr4c)
+plot(precis(mr4c))
+
+post_mr4c_means <- as_tibble(as.list(coef(mr4c))) %>% mutate_all(exp)
+post_mr4c_means <- post_mr4c_means %>%
+  mutate(rowname = "mean")
+
+post_mr4c <- extract.samples(mr4c, pars = c("a", "b_sex", "b_age", "b_anysymptoms",
+                                            "b_prevtb", "b_everhivtest"))
+
+post_mr4c_sum <- purrr::map(post_mr4c, ~ PI(.x, prob = 0.89))
+post_mr4c_sum <- purrr::map(post_mr4c_sum, ~ exp(.x))
+post_mr4c_sum <- data.frame(post_mr4c_sum) %>% rownames_to_column()
+
+post_mr4c_sum <- bind_rows(post_mr4c_sum, post_mr4c_means) %>%
+  mutate(model="mr4c")
+
+```
+
+Compare the models by estimating their WAIC statistics and weights
+
+```{r}
+rethinking::compare(mr1, mr2a, mr2b, mr2c, mr3a, mr3b, mr3c, mr4a, mr4b, mr4c)
+
+```
+
+
+So models 2c, 3c and 4c have the lowest WAIC and the greatest weights. Essentially, none of the other models have any weight.
+
+Construct an ensemble model of mr2c, mr3c, mr4c, combining results according to Aikaike weights
+
+Figure 2: Now plot the posterior distributions
+
+```{r}
+
+#A table of summaries of posteior distributions
+
+bind_rows(post_mr1_sum, 
+          post_mr2a_sum, post_mr2b_sum, post_mr2c_sum,
+          post_mr3a_sum, post_mr3b_sum, post_mr3c_sum,
+          post_mr4a_sum, post_mr4b_sum, post_mr4c_sum)
+
+
+gdata <- bind_rows(post_mr2c_sum, post_mr3c_sum, post_mr4c_sum) %>%
+  select(model, everything()) %T>%
+  print %>%
+  gather(parameter, value, -model, -rowname) %>%
+  mutate(parameter = case_when(parameter=="b_age" ~ "Age (years)",
+                               parameter=="b_sex" ~ "Male sex",
+                               parameter=="b_prevtb" ~ "Previous TB",
+                               parameter=="b_everhivtest" ~ "Previous HIV test",
+                               parameter=="b_cough" ~ "Cough",
+                               parameter=="b_chronic_cough" ~ "Chronic cough",
+                               parameter=="b_anysymptoms" ~ "Any TB symptoms",
+                               parameter=="a" ~ "Intercept")) %>%
+  mutate(parameter = factor(parameter)) %>%
+  mutate(parameter = fct_relevel(parameter,
+                                 "Intercept",
+                                 "Any TB symptoms",
+                                 "Chronic cough",
+                                 "Cough",
+                                 "Previous HIV test",
+                                 "Previous TB",
+                                 "Male sex",
+                                 "Age (years)"
+                                 ))
+
+gdata_means <- gdata %>%
+  filter(rowname=="mean")
+
+gdata_ranges <- gdata %>% 
+  filter(rowname !="mean") %>%
+  spread(rowname, value) %>%
+  select(everything(), l = `5%`, h = `94%`)
+
+glabels <- c(
+  mr2c = "Model 1: Cough",
+  mr3c = "Model 2: Chronic Cough",
+  mr4c = "Model 3: Any TB symptoms"
+)
+
+ggplot() +
+  geom_point(data=gdata_means, aes(x=value, y=parameter, colour=model)) +
+  geom_segment(data=gdata_ranges, aes(y=parameter, yend=parameter, x=l, xend=h, colour=model)) +
+  geom_vline(data=gdata, aes(xintercept=1), alpha=0.3, linetype="dashed") +
+  facet_wrap(~model,
+             labeller = labeller(model=glabels)) +
+  scale_color_rail(palette="penzance") +
+  scale_x_continuous(limits = c(0.1,3.0), breaks = c(0.5,1.0,1.5,2.0,2.5,3.0)) +
+  theme_bw() +
+  ylab("") +
+  xlab("Odds ratio (89% posterior interval)") +
+  theme(legend.position="none")
+
+ggsave(file="fig2.png", width = 8, height = 6, dpi=300, 
+       path = here::here("figures"))
+  
+
+```
+
+Posterior predictions for age and sex for each model
+
+```{r}
+
+outdata <- outdata %>%
+  mutate(chronic_cough2 = factor(chronic_cough2)) %>%
+  mutate(any_symptoms2 = factor(any_symptoms2))
+
+
+prior <- c(prior_string("normal(0,2.5)", class="b"),
+           prior_(~normal(0,100), class= ~Intercept))
+
+graph2c <- brm(bf(testedhiv2 ~
+          sex +
+          age +
+          cough +
+          prevtb +
+          everhivtest),
+          data=outdata, 
+          family='bernoulli',
+          prior = prior,
+          iter=1000, warmup=500,
+          chains=3,
+          seed=1234)
+
+
+g2c <- plot_model(graph2c, type = "pred", terms = c("age", "sex"),
+                 title = "Model 2c: Cough",
+                 axis.title = c("Age (years)", "Probability of HIV testing (89% interval)"),
+           legend.title = "Sex",
+           ci.lvl = 0.89,
+           colors = c("steelblue", "firebrick"),
+           show.legend = FALSE)
+
+g2c <- g2c + theme_bw()
+
+graph3c <- brm(bf(testedhiv2 ~
+          sex +
+          age +
+          chronic_cough2 +
+          prevtb +
+          everhivtest),
+          data=outdata, 
+          family='bernoulli',
+          prior = prior,
+          iter=1000, warmup=500,
+          chains=3,
+          seed=1234)
+
+
+g3c <- plot_model(graph3c, type = "pred", terms = c("age", "sex"),
+                 title = "Model 3c: Chronic cough",
+                 axis.title = c("Age (years)", ""),
+           legend.title = "Sex",
+           ci.lvl = 0.89,
+           colors = c("steelblue", "firebrick"),
+           show.legend = FALSE)
+
+g3c <- g3c + theme_bw()
+
+
+graph4c <- brm(bf(testedhiv2 ~
+          sex +
+          age +
+          any_symptoms2 +
+          prevtb +
+          everhivtest),
+          data=outdata, 
+          family='bernoulli',
+          prior = prior,
+          iter=1000, warmup=500,
+          chains=3,
+          seed=1234)
+
+
+g4c <- plot_model(graph4c, type = "pred", terms = c("age", "sex"),
+                 title = "Model 4c: Any TB symptom",
+                 axis.title = c("Age (years)", ""),
+           legend.title = "Sex",
+           ci.lvl = 0.89,
+           colors = c("steelblue", "firebrick"))
+
+g4c <- g4c + theme_bw()
+
+library(patchwork)
+g2c + g3c + g4c + plot_layout(ncol = 3)
+
+ggsave(file="fig3.png", width = 10, height = 6, dpi=300, 
+       path = here::here("figures"))
+
+
+```
+
+
+
+## 8. Reproducibility
+
+This reproduction of the analysis was run by: 
+
+```{r sysinfo, echo=FALSE, message=FALSE, comment=NA, warning=FALSE}
+
+sysinfo <- Sys.info()
+
+sysinfo <- data.frame(keyName=names(sysinfo), value=sysinfo, row.names=NULL)
+
+sysinfo %>% kable()
+```
+
+Analysis was run at **`r Sys.time()`**, and using the following Session Info:
+
+```{r sessioninfo, echo=FALSE, results='markdown', message=FALSE, comment=NA, warning=FALSE}
+sessionInfo()
+```
