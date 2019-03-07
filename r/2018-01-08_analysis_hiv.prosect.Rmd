@@ -324,8 +324,8 @@ Bayesian regression models
 outdata <- as.data.frame(outdata)
 
 outdata <- outdata %>%
-  mutate(sex2 = case_when(sex=="Male" ~ 1,
-                          sex=="Female" ~ 2)) %>%
+  mutate(sex2 = case_when(sex=="Male" ~ 2,
+                          sex=="Female" ~ 1)) %>%
   mutate(prevtb2 = case_when(prevtb=="Yes" ~2,
                              prevtb=="No" ~ 1)) %>%
   mutate(everhivtest2 = case_when(everhivtest=="Yes" ~ 2,
@@ -785,9 +785,9 @@ gdata_ranges <- gdata %>%
   select(everything(), l = `5%`, h = `94%`)
 
 glabels <- c(
-  mr2c = "Model 1: Cough",
-  mr3c = "Model 2: Chronic Cough",
-  mr4c = "Model 3: Any TB symptoms"
+  mr2c = "Model 2c: Cough",
+  mr3c = "Model 3c: Chronic Cough",
+  mr4c = "Model 4c: Any TB symptoms"
 )
 
 ggplot() +
@@ -843,7 +843,7 @@ g2c <- plot_model(graph2c, type = "pred", terms = c("age", "sex"),
            colors = c("steelblue", "firebrick"),
            show.legend = FALSE)
 
-g2c <- g2c + theme_bw()
+g2c <- g2c + theme_bw() + ylim(0,0.35) + scale_y_continuous(labels=scales::percent_format())
 
 graph3c <- brm(bf(testedhiv2 ~
           sex +
@@ -867,7 +867,7 @@ g3c <- plot_model(graph3c, type = "pred", terms = c("age", "sex"),
            colors = c("steelblue", "firebrick"),
            show.legend = FALSE)
 
-g3c <- g3c + theme_bw()
+g3c <- g3c + theme_bw() + ylim(0,0.35)+ scale_y_continuous(labels=scales::percent_format())
 
 
 graph4c <- brm(bf(testedhiv2 ~
@@ -891,7 +891,7 @@ g4c <- plot_model(graph4c, type = "pred", terms = c("age", "sex"),
            ci.lvl = 0.89,
            colors = c("steelblue", "firebrick"))
 
-g4c <- g4c + theme_bw()
+g4c <- g4c + theme_bw() + ylim(0,0.35) + scale_y_continuous(labels=scales::percent_format())
 
 library(patchwork)
 g2c + g3c + g4c + plot_layout(ncol = 3)
