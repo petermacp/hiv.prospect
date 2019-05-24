@@ -14,36 +14,21 @@ knitr::opts_chunk$set(
 ```
 # hiv.prospect
 
-The goal of hiv.prospect is to ...
+This is a package to accompany the paper "Provider-initiated HIV testing and TB screening in the era of universal coverage: are the right people being reached? A cohort study in Blantyre, Malawi" by Luke Mair *et al*
 
 ## Installation
 
-You can install the released version of hiv.prospect from [CRAN](https://CRAN.R-project.org) with:
+You can install the released version of hiv.prospect from [GitHub](https://github.com) with:
 
 ``` r
-install.packages("hiv.prospect")
+library(devtools)
+install_github(petermacp/hiv.prospect)
 ```
 
-## Example
+## Analysis
 
-This is a basic example which shows you how to solve a common problem:
-
-```{r example}
-## basic example code
-```
-
-What is special about using `README.Rmd` instead of just `README.md`? You can include R chunks like so:
-
-```{r cars}
-summary(cars)
-```
-
-You'll still need to render `README.Rmd` regularly, to keep `README.md` up-to-date.
-
-You can also embed plots, for example:
-
-```{r pressure, echo = FALSE}
-plot(pressure)
-```
-
-In that case, don't forget to commit and push the resulting figure files, so they display on GitHub!
+Within the `data` folder, there are two datasets:
+ - entry.rda, which contains anonymised individual-records of participants entering the clinic during the study period, and
+ - exit.rda, which contains anonymised individual-records of participants interviewed whilst exiting the clinic during the study period.
+ 
+With the `r` folder is the main analysis script `2018-01-08_analysis_hiv.prospect.Rmd`. Running this script will replicate the analysis in the manuscript.

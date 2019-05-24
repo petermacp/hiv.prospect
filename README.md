@@ -1,45 +1,30 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
-hiv.prospect
-============
 
-The goal of hiv.prospect is to ...
+# hiv.prospect
 
-Installation
-------------
+This is a package to accompany the paper “Provider-initiated HIV testing
+and TB screening in the era of universal coverage: are the right people
+being reached? A cohort study in Blantyre, Malawi” by Luke Mair *et al*
 
-You can install the released version of hiv.prospect from [CRAN](https://CRAN.R-project.org) with:
+## Installation
 
-``` r
-install.packages("hiv.prospect")
-```
-
-Example
--------
-
-This is a basic example which shows you how to solve a common problem:
+You can install the released version of hiv.prospect from
+[GitHub](https://github.com) with:
 
 ``` r
-## basic example code
+library(devtools)
+install_github(petermacp/hiv.prospect)
 ```
 
-What is special about using `README.Rmd` instead of just `README.md`? You can include R chunks like so:
+## Analysis
 
-``` r
-summary(cars)
-#>      speed           dist       
-#>  Min.   : 4.0   Min.   :  2.00  
-#>  1st Qu.:12.0   1st Qu.: 26.00  
-#>  Median :15.0   Median : 36.00  
-#>  Mean   :15.4   Mean   : 42.98  
-#>  3rd Qu.:19.0   3rd Qu.: 56.00  
-#>  Max.   :25.0   Max.   :120.00
-```
+Within the `data` folder, there are two datasets: - entry.rda, which
+contains anonymised individual-records of participants entering the
+clinic during the study period, and - exit.rda, which contains
+anonymised individual-records of participants interviewed whilst exiting
+the clinic during the study period.
 
-You'll still need to render `README.Rmd` regularly, to keep `README.md` up-to-date.
-
-You can also embed plots, for example:
-
-<img src="man/figures/README-pressure-1.png" width="100%" />
-
-In that case, don't forget to commit and push the resulting figure files, so they display on GitHub!
+With the `r` folder is the main analysis script
+`2018-01-08_analysis_hiv.prospect.Rmd`. Running this script will
+replicate the analysis in the manuscript.
