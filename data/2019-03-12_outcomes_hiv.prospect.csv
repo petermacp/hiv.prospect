@@ -1,0 +1,73 @@
+﻿outcome,group,sex,value
+Not offered HIV testing,Cough,Men,209
+Offered and tested for HIV,Cough,Men,76
+Offered and not tested for HIV,Cough,Men,19
+Not offered HIV testing,Fever,Men,195
+Offered and tested for HIV,Fever,Men,60
+Offered and not tested for HIV,Fever,Men,20
+Not offered HIV testing,Weight loss,Men,83
+Offered and tested for HIV,Weight loss,Men,25
+Offered and not tested for HIV,Weight loss,Men,7
+Not offered HIV testing,Night sweats,Men,114
+Offered and tested for HIV,Night sweats,Men,30
+Offered and not tested for HIV,Night sweats,Men,8
+Not offered HIV testing,Chronic cough,Men,65
+Offered and tested for HIV,Chronic cough,Men,13
+Offered and not tested for HIV,Chronic cough,Men,5
+Not offered HIV testing,Any TB symptom,Men,336
+Offered and tested for HIV,Any TB symptom,Men,113
+Offered and not tested for HIV,Any TB symptom,Men,32
+Not offered HIV testing,Cough,Women,312
+Offered and tested for HIV,Cough,Women,89
+Offered and not tested for HIV,Cough,Women,27
+Not offered HIV testing,Fever,Women,262
+Offered and tested for HIV,Fever,Women,75
+Offered and not tested for HIV,Fever,Women,35
+Not offered HIV testing,Weight loss,Women,95
+Offered and tested for HIV,Weight loss,Women,29
+Offered and not tested for HIV,Weight loss,Women,13
+Not offered HIV testing,Night sweats,Women,189
+Offered and tested for HIV,Night sweats,Women,44
+Offered and not tested for HIV,Night sweats,Women,22
+Not offered HIV testing,Chronic cough,Women,75
+Offered and tested for HIV,Chronic cough,Women,15
+Offered and not tested for HIV,Chronic cough,Women,6
+Not offered HIV testing,Any TB symptom,Women,515
+Offered and tested for HIV,Any TB symptom,Women,141
+Offered and not tested for HIV,Any TB symptom,Women,62
+Not offered HIV testing,No cough,Men,375
+Offered and tested for HIV,No cough,Men,108
+Offered and not tested for HIV,No cough,Men,39
+Not offered HIV testing,No fever,Men,389
+Offered and tested for HIV,No fever,Men,124
+Offered and not tested for HIV,No fever,Men,38
+Not offered HIV testing,No weight loss,Men,501
+Offered and tested for HIV,No weight loss,Men,159
+Offered and not tested for HIV,No weight loss,Men,51
+Not offered HIV testing,No night sweats,Men,470
+Offered and tested for HIV,No night sweats,Men,154
+Offered and not tested for HIV,No night sweats,Men,50
+Not offered HIV testing,No chronic cough,Men,519
+Offered and tested for HIV,No chronic cough,Men,171
+Offered and not tested for HIV,No chronic cough,Men,53
+Not offered HIV testing,No TB symptoms,Men,248
+Offered and tested for HIV,No TB symptoms,Men,71
+Offered and not tested for HIV,No TB symptoms,Men,26
+Not offered HIV testing,No cough,Women,640
+Offered and tested for HIV,No cough,Women,163
+Offered and not tested for HIV,No cough,Women,64
+Not offered HIV testing,No fever,Women,690
+Offered and tested for HIV,No fever,Women,177
+Offered and not tested for HIV,No fever,Women,56
+Not offered HIV testing,No weight loss,Women,857
+Offered and tested for HIV,No weight loss,Women,223
+Offered and not tested for HIV,No weight loss,Women,78
+Not offered HIV testing,No night sweats,Women,763
+Offered and tested for HIV,No night sweats,Women,208
+Offered and not tested for HIV,No night sweats,Women,69
+Not offered HIV testing,No chronic cough,Women,877
+Offered and tested for HIV,No chronic cough,Women,237
+Offered and not tested for HIV,No chronic cough,Women,85
+Not offered HIV testing,No TB symptoms,Women,437
+Offered and tested for HIV,No TB symptoms,Women,111
+Offered and not tested for HIV,No TB symptoms,Women,29

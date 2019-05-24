@@ -1,0 +1,36 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+
+```{r}
+setwd("~/Dropbox/Projects/PROSPECT Study 20160610/Work/Data/hiv.prospect/data")
+library(tidyverse)
+
+df <- read_csv("2019-03-12_outcomes_hiv.prospect.csv")
+
+df <- df %>%
+  mutate(group = factor(group))
+
+df %>%
+  ggplot(aes(x=sex, y=value, fill=outcome)) +
+  geom_bar(position="fill", stat="identity") +
+  facet_wrap(fct_relevel(group,
+                         "Cough", "Fever", "Night sweats", "Weight loss","Chronic cough",
+                         "Any TB symptom", "No cough", "No fever", "No night sweats", 
+                         "No weight loss", "No chronic cough", "No TB symptoms")
+             ~., ncol=6) +
+  theme_minimal() +
+  scale_fill_brewer() +
+  scale_y_continuous(labels = scales::percent_format()) +
+  xlab("") +
+  ylab("") +
+  theme(legend.title = element_blank())
+
+ggsave("2019-03-12_hivtestoutcome_hiv.prosepct.png", dpi=600, width=10, height=8)
+```
+
+
+
