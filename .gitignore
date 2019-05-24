@@ -2,5 +2,10 @@
 .Rhistory
 .RData
 .Ruserdata
-.data-raw/
-.Rbuildignore
+.data-raw/2018-10-11_simprintsIDs_LSTM.xlsx
+.data-raw/2019-01-08_cleaning_hiv.prospect.html
+.data-raw/2019-01-08_cleaning_hiv.prospect.Rmd
+.data-raw/baseline.rda
+.data-raw/eligibility_consent.rda
+.data-raw/exit_interview.rda
+.data-raw/reattendance.rda
